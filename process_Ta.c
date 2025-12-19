@@ -10,11 +10,27 @@
 #include <sys/time.h>
 #include <time.h>
 #include <sys/file.h>
-#include "logger.c" 
+#include "logger.h"
 
 int window_width;
 int window_height;
 int x_coord_Ta, y_coord_Ta;
+
+// sig_atomic_t ensures atomic access during signal handling
+volatile sig_atomic_t health_check = 0;
+volatile sig_atomic_t should_exit = 0;
+
+void handle_signal(int signo) {
+    if (signo == SIGUSR1) {
+        health_check = 1; // Mark that we received a ping
+    }
+}
+
+void handle_terminate(int signo) {
+    if (signo == SIGTERM) {
+        should_exit = 1;
+    }
+}
 
 static long current_millis() {
     struct timeval tv;
@@ -25,6 +41,7 @@ static long current_millis() {
 
 // Same function as in BlackBoard, but read only the first two lines of the parameter file
 void Parameter_File() {
+    
     // Standardized exit codes
     #define USAGE_ERROR 64
     #define OPEN_FAIL 66
@@ -69,9 +86,31 @@ void Parameter_File() {
 int main(int argc, char *argv[]) 
 {
 
+     // Setup signal handling FIRST
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = handle_signal;
+    sigaction(SIGUSR1, &sa, NULL);
+
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = handle_terminate;
+    sigaction(SIGTERM, &sa, NULL);
+    
      // 1. LOG SELF immediately
     log_process("Targets", getpid());
 
+    pid_t watchdog_pid = -1;
+    int retries = 0;
+    while (watchdog_pid == -1 && retries < 10) {
+        sleep(1);
+        watchdog_pid = get_pid_by_name("Watchdog");
+        retries++;
+    }
+    
+    if (watchdog_pid == -1) {
+        printf("Could not find Watchdog! Exiting.\n");
+        return 1;
+    }
     // Parameter file reading
     Parameter_File();
     if (argc < 2) {
@@ -89,6 +128,8 @@ int main(int argc, char *argv[])
     srand(time(NULL) + getpid());
 
     while(1){
+        if (should_exit) break;
+        
         long now_ms = current_millis();
         if (now_ms - last_target_ms >= target_interval_ms) {
             x_coord_Ta = 1 + rand() % (window_width - 10);
@@ -96,6 +137,12 @@ int main(int argc, char *argv[])
             last_target_ms = now_ms;
             sprintf(buffer, "%d,%d", x_coord_Ta, y_coord_Ta);
             write(fdTa, buffer, strlen(buffer)+1);
+
+            // Checking alive signal
+            if (health_check) {
+                health_check = 0; // Reset flag
+                kill(watchdog_pid, SIGUSR2); // Send signal back to watchdog
+            }
         }
         usleep(100000); // Sleep 100ms to avoid busy-waiting
     }

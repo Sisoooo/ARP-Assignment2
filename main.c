@@ -10,7 +10,7 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <sys/file.h>
-#include "logger.c"  // Include the logger header
+#include "logger.h"  // Include the logger header
 
 int main()
 {
@@ -263,6 +263,21 @@ int main()
     
     }
 
+    //.....Watchdog.....
+    pid_t WD = fork();
+
+     if (WD < 0)
+    {
+    perror("Error in fork");
+    return 1;
+    }
+
+   if (WD == 0) {
+    execl("./watchdog", "watchdog", NULL);
+    perror("Failed to start watchdog"); 
+    exit(1); // Kill the child process immediately if execl fails
+}
+
     //closing all pipes
     // Close Input Pipes
     close(fdIn[0]); close(fdIn[1]);
@@ -286,41 +301,43 @@ int main()
     pid_t wpid;
 
     //checking if the child status has changed
+    // Corrected Master Loop
     while ((wpid = wait(&status)) > 0) {
 
-        //how child terminated, reads from status. Either normally exit()/ return or code
+        // --- PRIORITY CHECK: DRONE DEATH ---
+        // We check this FIRST, before caring about how it died.
+        if (wpid == Dr) {
+            fprintf(stderr, "MASTER: Drone (PID %d) has stopped. Shutting down system...\n", wpid);
+            
+            // 1. Terminate everyone including Watchdog
+            if (BB > 0) kill(BB, SIGTERM);
+            if (In > 0) kill(In, SIGTERM);
+            if (Ob > 0) kill(Ob, SIGTERM);
+            if (Ta > 0) kill(Ta, SIGTERM);
+            if (WD > 0) kill(WD, SIGTERM); 
+            
+            // 2. Grace period
+            usleep(100000); 
+            
+            // 3. Force Kill
+            if (BB > 0) kill(BB, SIGKILL);
+            if (In > 0) kill(In, SIGKILL);
+            if (Ob > 0) kill(Ob, SIGKILL);
+            if (Ta > 0) kill(Ta, SIGKILL);
+            if (WD > 0) kill(WD, SIGKILL);
+            
+            break; // Break the loop to finish up
+        }
+
+        // --- STATUS LOGGING ---
         if (WIFEXITED(status)) { 
             int code = WEXITSTATUS(status);
-            
-            // Check if this was the drone process
-            if (wpid == Dr) {
-                fprintf(stderr, "Drone exited, shutting down all processes...\n");
-                
-                // Kill all other child processes
-                kill(BB, SIGTERM);
-                kill(In, SIGTERM);
-                kill(Ob, SIGTERM);
-                kill(Ta,SIGTERM);
-                
-                // Small delay to let them terminate gracefully
-                usleep(100000);
-                
-                // Force kill if still alive
-                kill(BB, SIGKILL);
-                kill(In, SIGKILL);
-                kill(Ob, SIGKILL);
-                kill(Ta,SIGKILL);
-                
-                break; // Exit the wait loop
-            }
-            //failures
             if (code != 0) {
-                fprintf(stderr, "Child %d exited with code %d\n", wpid, code);
+                fprintf(stderr, "Child %d exited with error code %d\n", wpid, code);
                 failures++;
             }
-            //process was terminated through signals
         } else if (WIFSIGNALED(status)) {
-            fprintf(stderr, "Child %d terminated by signal %d\n", wpid, WTERMSIG(status));
+            fprintf(stderr, "Child %d killed by signal %d\n", wpid, WTERMSIG(status));
             failures++;
         }
     }

@@ -13,6 +13,9 @@
 #include <math.h>
 #include <stdbool.h>
 #include <errno.h>
+#include <sys/file.h>
+#include "logger.h"
+#include <signal.h>
 #define MAX_ITEMS 20
 typedef struct {
     int x;
@@ -42,6 +45,22 @@ int obs_count = 0;
 Point targets[MAX_ITEMS];
 int tar_head = 0;
 int tar_count = 0;
+
+// sig_atomic_t ensures atomic access during signal handling
+volatile sig_atomic_t health_check = 0;
+volatile sig_atomic_t should_exit = 0;
+
+void handle_signal(int signo) {
+    if (signo == SIGUSR1) {
+        health_check = 1; // Mark that we received a ping
+    }
+}
+
+void handle_terminate(int signo) {
+    if (signo == SIGTERM) {
+        should_exit = 1;
+    }
+}
 
 // Function to read parameter file
 void Parameter_File() {
@@ -136,6 +155,27 @@ static void layout_and_draw(WINDOW *win) {
   
 int main(int argc, char *argv[]) {
 
+    // Setup signal handling FIRST
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = handle_signal;
+    sigaction(SIGUSR1, &sa, NULL);
+    
+    // LOG SELF immediately
+    log_process("BlackBaord", getpid());
+    
+    pid_t watchdog_pid = -1;
+    int retries = 0;
+    while (watchdog_pid == -1 && retries < 10) {
+        sleep(1);
+        watchdog_pid = get_pid_by_name("Watchdog");
+        retries++;
+    }
+    
+    if (watchdog_pid == -1) {
+        printf("Could not find Watchdog! Exiting.\n");
+        return 1;
+    }
     Parameter_File();
     
     setlocale(LC_ALL, "");
@@ -226,6 +266,9 @@ int main(int argc, char *argv[]) {
     }
 
     while (running) {
+
+        if (should_exit) break;
+        
         int ch = wgetch(win); // poll window for keys (returns KEY_RESIZE)
         sIn[0]='\0';
         repulsion_sent = false;
@@ -599,6 +642,13 @@ int main(int argc, char *argv[]) {
         mvwprintw(win, (int)y_curr, (int)x_curr, "+");
         wattroff(win, COLOR_PAIR(1));
         wrefresh(win);
+
+        
+        // Checking alive signal
+        if (health_check) {
+            health_check = 0; // Reset flag
+            kill(watchdog_pid, SIGUSR2); // Send signal back to watchdog
+        }
         usleep(10000); 
         
     }

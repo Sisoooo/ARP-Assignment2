@@ -11,14 +11,53 @@
 #include <termios.h>
 #include <signal.h>
 #include <sys/file.h>
-#include "logger.c" 
+#include "logger.h"
 
+
+// sig_atomic_t ensures atomic access during signal handling
+volatile sig_atomic_t health_check = 0;
+volatile sig_atomic_t should_exit = 0;
+
+void handle_signal(int signo) {
+    if (signo == SIGUSR1) {
+        health_check = 1; // Mark that we received a ping
+    }
+}
+
+void handle_terminate(int signo) {
+    if (signo == SIGTERM) {
+        should_exit = 1;
+    }
+}
 
 int main(int argc, char *argv[]) 
 {
+    // Setup signal handling FIRST
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = handle_signal;
+    sigaction(SIGUSR1, &sa, NULL);
+
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = handle_terminate;
+    sigaction(SIGTERM, &sa, NULL);
+
      // 1. LOG SELF immediately
     log_process("Input", getpid());
     
+    pid_t watchdog_pid = -1;
+    int retries = 0;
+    while (watchdog_pid == -1 && retries < 10) {
+        sleep(1);
+        watchdog_pid = get_pid_by_name("Watchdog");
+        retries++;
+    }
+    
+    if (watchdog_pid == -1) {
+        printf("Could not find Watchdog! Exiting.\n");
+        return 1;
+    }
+
     signal(SIGPIPE, SIG_IGN);
 
     // Standardized exit codes
@@ -45,7 +84,7 @@ int main(int argc, char *argv[])
 
     // Disable canonical mode (waiting for Enter) and echo
     new_tio.c_lflag &= ~(ICANON); 
-    new_tio.c_cc[VMIN] = 1;  
+    new_tio.c_cc[VMIN] = 0;  
     new_tio.c_cc[VTIME] = 0; 
     tcsetattr(STDIN_FILENO, TCSANOW, &new_tio); 
 
@@ -59,6 +98,8 @@ int main(int argc, char *argv[])
 
     while (1) 
     {
+        if (should_exit) break;
+
         if (read(STDIN_FILENO, &c, 1) > 0) 
         {
             write(fdIn, &c, 1);
@@ -81,13 +122,15 @@ int main(int argc, char *argv[])
             // 2. Write the "automatic Enter"
             write(fdIn, &newline, 1);
                
-        
-        } 
-        else 
-        {
-            break;
         }
-
+        
+        // Checking alive signal
+        if (health_check) {
+            health_check = 0; // Reset flag
+            kill(watchdog_pid, SIGUSR2); // Send signal back to watchdog
+        }
+        
+        usleep(10000);
     }
 
     // Restore the old terminal settings

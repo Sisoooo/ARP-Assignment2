@@ -15,7 +15,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <sys/file.h>
-#include "logger.c" 
+#include "logger.h"
 
 int window_width;
 int window_height;
@@ -29,6 +29,21 @@ int t_intial ;
 bool running = true;
 bool repul =false;
 
+// sig_atomic_t ensures atomic access during signal handling
+volatile sig_atomic_t health_check = 0;
+volatile sig_atomic_t should_exit = 0;
+
+void handle_signal(int signo) {
+    if (signo == SIGUSR1) {
+        health_check = 1; // Mark that we received a ping
+    }
+}
+
+void handle_terminate(int signo) {
+    if (signo == SIGTERM) {
+        should_exit = 1;
+    }
+}
 
 // Function to identify opposite keys
 char get_opposite_key(char key) {
@@ -103,9 +118,34 @@ void Parameter_File() {
 
 int main(int argc, char *argv[]) 
 {
-    // 1. LOG SELF immediately
+    
+    // Setup signal handling FIRST
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = handle_signal;
+    sigaction(SIGUSR1, &sa, NULL);
+    
+    memset(&sa, 0, sizeof(sa));
+    sa.sa_handler = handle_terminate;
+    sigaction(SIGTERM, &sa, NULL);
+
+    // LOG SELF immediately
     log_process("Drone", getpid());
     
+    pid_t watchdog_pid = -1;
+    int retries = 0;
+    while (watchdog_pid == -1 && retries < 10) {
+        sleep(1);
+        watchdog_pid = get_pid_by_name("Watchdog");
+        retries++;
+    }
+    
+    if (watchdog_pid == -1) {
+        printf("Could not find Watchdog! Exiting.\n");
+        return 1;
+    }
+    
+
     // Standardized exit codes
     #define USAGE_ERROR 64
     #define OPEN_FAIL 66
@@ -169,7 +209,8 @@ int main(int argc, char *argv[])
 
     while(running){
  
-        
+        if (should_exit) break;
+
         FD_ZERO(&readfds);
         FD_SET(fdIn, &readfds);
         FD_SET(fdFromBB, &readfds);
@@ -345,13 +386,20 @@ int main(int argc, char *argv[])
         // Sends the current position back to bb
         snprintf(sOut, sizeof(sOut), "%d,%d", (int)(x_curr), (int)(y_curr));
         ssize_t w = write(fdToBB, sOut, strlen(sOut) + 1);
+        
+        // Checking alive signal
+        if (health_check) {
+            health_check = 0; // Reset flag
+            kill(watchdog_pid, SIGUSR2); // Send signal back to watchdog
+        }
+
         if (w > 0) {
             dprintf(STDERR_FILENO, "DRONE: wrote %zd bytes to fd %d -> '%s'\n", w, fdToBB, sOut);
         } else {
-            dprintf(STDERR_FILENO, "DRONE: write failed fd=%d ret=%zd errno=%d (%s)\n",
-                    fdToBB, w, errno, strerror(errno));
+            dprintf(STDERR_FILENO, "DRONE: write failed fd=%d ret=%zd errno=%d (%s)\n", fdToBB, w, errno, strerror(errno));
         }
-    
+        
+        
 
     usleep(10000);
 }
