@@ -34,6 +34,7 @@ int wh = 0, ww = 0;
 bool running = true;
 bool skip_drone_update = false;
 bool repulsion_sent = false;
+bool colors_enabled = false;
 Point obstacles[MAX_ITEMS];
 int obs_head = 0;
 int obs_count = 0;
@@ -120,7 +121,13 @@ static void layout_and_draw(WINDOW *win) {
     // Clean up and draw again
     werase(stdscr);
     werase(win);
-    box(win, 0, 0);
+    if (colors_enabled) {
+        wattron(win, COLOR_PAIR(4));
+        box(win, 0, 0);
+        wattroff(win, COLOR_PAIR(4));
+    } else {
+        box(win, 0, 0);
+    }
    
 
     refresh();
@@ -140,9 +147,11 @@ int main(int argc, char *argv[]) {
     if (has_colors()) {
         start_color();
         use_default_colors();
-        init_pair(1, COLOR_BLUE, -1);  // drone
+        init_pair(1, COLOR_CYAN, -1);  // drone
         init_pair(2, COLOR_GREEN, -1); // target
         init_pair(3, COLOR_RED, -1);   // obstacle
+        init_pair(4, COLOR_BLUE, -1);  // border
+        colors_enabled = true;
     }
     
     int term_h, term_w;
@@ -267,7 +276,13 @@ int main(int argc, char *argv[]) {
 
         // Clear window for new frame
         werase(win);
-        box(win, 0, 0);
+        if (colors_enabled) {
+            wattron(win, COLOR_PAIR(4));
+            box(win, 0, 0);
+            wattroff(win, COLOR_PAIR(4));
+        } else {
+            box(win, 0, 0);
+        }
 
         FD_ZERO(&readfds);
         FD_SET(fdToBB, &readfds);
@@ -428,7 +443,13 @@ int main(int argc, char *argv[]) {
 
             input_key=' ';
             werase(win);
-            box(win, 0, 0);
+            if (colors_enabled) {
+                wattron(win, COLOR_PAIR(4));
+                box(win, 0, 0);
+                wattroff(win, COLOR_PAIR(4));
+            } else {
+                box(win, 0, 0);
+            }
             mvwprintw(win, 0, 0, "                       ");    
 
         }
