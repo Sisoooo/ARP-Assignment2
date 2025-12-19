@@ -144,6 +144,7 @@ int main(int argc, char *argv[]) {
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
+    (void)curs_set(0);
     if (has_colors()) {
         start_color();
         use_default_colors();
@@ -374,10 +375,16 @@ int main(int argc, char *argv[]) {
                     if (new_y >= wh - 1) new_y = wh - 2;
 
                     // Store in array
-                    targets[tar_head].x = new_x;
-                    targets[tar_head].y = new_y;
-                    tar_head = (tar_head + 1) % MAX_ITEMS;
-                    if (tar_count < MAX_ITEMS) tar_count++;
+                    if (tar_count < MAX_ITEMS) {
+                        targets[tar_count].x = new_x;
+                        targets[tar_count].y = new_y;
+                        tar_count++;
+                    } else {
+                        // Drop the oldest target to make room
+                        memmove(&targets[0], &targets[1], sizeof(targets[0]) * (MAX_ITEMS - 1));
+                        targets[MAX_ITEMS - 1].x = new_x;
+                        targets[MAX_ITEMS - 1].y = new_y;
+                    }
                 }
                 else { running = false; }
             }
@@ -387,6 +394,22 @@ int main(int argc, char *argv[]) {
         // Quit the game
         if (input_key=='q'){
             running = false;
+        }
+
+        // If drone overlaps a target, remove that target
+        {
+            int drone_x = (int)x_curr;
+            int drone_y = (int)y_curr;
+            for (int i = 0; i < tar_count; ) {
+                if (targets[i].x == drone_x && targets[i].y == drone_y) {
+                    if (i < tar_count - 1) {
+                        memmove(&targets[i], &targets[i + 1], sizeof(targets[0]) * (tar_count - i - 1));
+                    }
+                    tar_count--;
+                    continue;
+                }
+                i++;
+            }
         }
 
         // Reset button - recentre drone
@@ -565,9 +588,9 @@ int main(int argc, char *argv[]) {
         // Draw Targets
         for(int i=0; i<tar_count; i++) {
              if (targets[i].x > 0 && targets[i].y > 0) {
-                     wattron(win, COLOR_PAIR(2));
+                wattron(win, COLOR_PAIR(2));
                 mvwprintw(win, targets[i].y, targets[i].x, "T");
-                     wattroff(win, COLOR_PAIR(2));
+                wattroff(win, COLOR_PAIR(2));
              }
         }
 
