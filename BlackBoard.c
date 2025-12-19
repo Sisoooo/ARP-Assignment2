@@ -137,6 +137,13 @@ int main(int argc, char *argv[]) {
     cbreak();
     noecho();
     keypad(stdscr, TRUE);
+    if (has_colors()) {
+        start_color();
+        use_default_colors();
+        init_pair(1, COLOR_BLUE, -1);  // drone
+        init_pair(2, COLOR_GREEN, -1); // target
+        init_pair(3, COLOR_RED, -1);   // obstacle
+    }
     
     int term_h, term_w;
     getmaxyx(stdscr, term_h, term_w);
@@ -227,7 +234,9 @@ int main(int argc, char *argv[]) {
                 mvwprintw(win, obstacles[i].y, obstacles[i].x, " ");
                 obstacles[i].x = (int)(((float)obstacles[i].x * ww) / old_ww);
                 obstacles[i].y = (int)(((float)obstacles[i].y * wh) / old_wh);
+                wattron(win, COLOR_PAIR(3));
                 mvwprintw(win, obstacles[i].y, obstacles[i].x, "O");
+                wattroff(win, COLOR_PAIR(3));
                 // Clamp to window dimensions to prevent vanishing
                 if (obstacles[i].x >= ww - 1) obstacles[i].x = ww - 2;
                 if (obstacles[i].y >= wh - 1) obstacles[i].y = wh - 2;
@@ -238,7 +247,9 @@ int main(int argc, char *argv[]) {
                 mvwprintw(win, targets[i].y, targets[i].x, " ");
                 targets[i].x = (int)(((float)targets[i].x * ww) / old_ww);
                 targets[i].y = (int)(((float)targets[i].y * wh) / old_wh);
+                wattron(win, COLOR_PAIR(2));
                 mvwprintw(win, targets[i].y, targets[i].x, "T");
+                wattroff(win, COLOR_PAIR(2));
                 // Clamp to window dimensions to prevent vanishing
                 if (targets[i].x >= ww - 1) targets[i].x = ww - 2;
                 if (targets[i].y >= wh - 1) targets[i].y = wh - 2;
@@ -449,7 +460,9 @@ int main(int argc, char *argv[]) {
         // Draw Obstacles while checking if we having an closeness of a drone
         for(int i=0; i<obs_count; i++) {
             if (obstacles[i].x > 0 && obstacles[i].y > 0){ 
+                wattron(win, COLOR_PAIR(3));
                 mvwprintw(win, obstacles[i].y, obstacles[i].x, "O");
+                wattroff(win, COLOR_PAIR(3));
             }
             
             dx =  x_curr - obstacles[i].x;
@@ -530,12 +543,17 @@ int main(int argc, char *argv[]) {
         
         // Draw Targets
         for(int i=0; i<tar_count; i++) {
-             if (targets[i].x > 0 && targets[i].y > 0) 
+             if (targets[i].x > 0 && targets[i].y > 0) {
+                     wattron(win, COLOR_PAIR(2));
                 mvwprintw(win, targets[i].y, targets[i].x, "T");
+                     wattroff(win, COLOR_PAIR(2));
+             }
         }
 
         // Draw the drone 
+        wattron(win, COLOR_PAIR(1));
         mvwprintw(win, (int)y_curr, (int)x_curr, "+");
+        wattroff(win, COLOR_PAIR(1));
         wrefresh(win);
         usleep(10000); 
         
