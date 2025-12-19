@@ -9,10 +9,19 @@
 #include <curses.h>
 #include <sys/time.h>
 #include <errno.h>
-
+#include <sys/file.h>
+#include "logger.c"  // Include the logger header
 
 int main()
 {
+    // Clear the log file at start of Master so we don't keep old runs
+    // "w" mode truncates the file if it exists and creates it if it doesn't
+    FILE *f = fopen("process_log.txt", "w");
+    fclose(f);
+
+    // 2. LOG the Master process
+    log_process("Master", getpid());
+    
     int fdIn[2], fdOb[2], fdTa[2],fdToBB[2], fdFromBB[2],fdRepul[2];
 
     const char * pipe_path = "./pipe_blackboard_input";

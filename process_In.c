@@ -10,9 +10,15 @@
 #include <sys/time.h>
 #include <termios.h>
 #include <signal.h>
+#include <sys/file.h>
+#include "logger.c" 
+
 
 int main(int argc, char *argv[]) 
 {
+     // 1. LOG SELF immediately
+    log_process("Input", getpid());
+    
     signal(SIGPIPE, SIG_IGN);
 
     // Standardized exit codes

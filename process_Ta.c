@@ -9,6 +9,8 @@
 #include <curses.h>
 #include <sys/time.h>
 #include <time.h>
+#include <sys/file.h>
+#include "logger.c" 
 
 int window_width;
 int window_height;
@@ -19,6 +21,7 @@ static long current_millis() {
     gettimeofday(&tv, NULL);
     return tv.tv_sec * 1000L + tv.tv_usec / 1000L;
 }
+
 
 // Same function as in BlackBoard, but read only the first two lines of the parameter file
 void Parameter_File() {
@@ -66,6 +69,10 @@ void Parameter_File() {
 int main(int argc, char *argv[]) 
 {
 
+     // 1. LOG SELF immediately
+    log_process("Targets", getpid());
+
+    // Parameter file reading
     Parameter_File();
     if (argc < 2) {
         fprintf(stderr, "Usage: %s <fd>\n", argv[0]);

@@ -14,6 +14,8 @@
 #include <stdbool.h>
 #include <signal.h>
 #include <errno.h>
+#include <sys/file.h>
+#include "logger.c" 
 
 int window_width;
 int window_height;
@@ -26,6 +28,7 @@ int working_area ;
 int t_intial ;  
 bool running = true;
 bool repul =false;
+
 
 // Function to identify opposite keys
 char get_opposite_key(char key) {
@@ -100,6 +103,9 @@ void Parameter_File() {
 
 int main(int argc, char *argv[]) 
 {
+    // 1. LOG SELF immediately
+    log_process("Drone", getpid());
+    
     // Standardized exit codes
     #define USAGE_ERROR 64
     #define OPEN_FAIL 66
