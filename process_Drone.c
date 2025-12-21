@@ -16,6 +16,8 @@
 #include <errno.h>
 #include <sys/file.h>
 #include "logger.h"
+#include "logger_custom.h"
+
 
 int window_width;
 int window_height;
@@ -45,6 +47,24 @@ void handle_terminate(int signo) {
     }
 }
 
+
+void log_coordinates(const char *message) {
+    FILE *f = fopen("coordinates_log.txt", "a");
+    if (!f) {
+        LOG_ERRNO("Drone","Failed to open coordinates_log.txt");
+        return;
+    }
+    if (flock(fileno(f), LOCK_EX) == -1) { fclose(f); return; }
+    
+    time_t now = time(NULL);
+    char *timestamp = ctime(&now);
+    timestamp[strlen(timestamp)-1] = '\0';
+    fprintf(f, "[%s] %s\n", timestamp, message);
+    fflush(f);
+    flock(fileno(f), LOCK_UN);
+    fclose(f);
+}
+
 // Function to identify opposite keys
 char get_opposite_key(char key) {
     switch (key) {
@@ -63,7 +83,7 @@ char get_opposite_key(char key) {
 void Parameter_File() {
     FILE* file = fopen("Parameter_File.txt", "r");
     if (file == NULL) {
-        perror("Error opening Parameter_File.txt");
+        LOG_ERRNO("Drone","Error opening Parameter_File.txt");
         return;
     }
 
@@ -118,7 +138,7 @@ void Parameter_File() {
 
 int main(int argc, char *argv[]) 
 {
-    
+        
     // Setup signal handling FIRST
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
@@ -131,6 +151,8 @@ int main(int argc, char *argv[])
 
     // LOG SELF immediately
     log_process("Drone", getpid());
+    logger_init("system.log");
+    LOG_INFO("Drone", "Starting Drone Process (PID=%d)", getpid());
     
     pid_t watchdog_pid = -1;
     int retries = 0;
@@ -141,7 +163,7 @@ int main(int argc, char *argv[])
     }
     
     if (watchdog_pid == -1) {
-        printf("Could not find Watchdog! Exiting.\n");
+        LOG_WARNING("Drone","Could not find Watchdog! Exiting.\n");
         return 1;
     }
     
@@ -209,7 +231,10 @@ int main(int argc, char *argv[])
 
     while(running){
  
-        if (should_exit) break;
+        if (should_exit) {
+            LOG_INFO("Drone","Termination signal received. Exiting main loop.\n");
+            break;
+        }
 
         FD_ZERO(&readfds);
         FD_SET(fdIn, &readfds);
@@ -232,7 +257,10 @@ int main(int argc, char *argv[])
                 if (bytes > 0) {
                     strIn[bytes] = '\0';
                     sscanf(strIn, "%s", sIn);
-                } else { running = false; } // Pipe closed
+                    LOG_INFO("Drone", "Received key inputs");
+                } else { 
+                    LOG_ERROR("Drone", "Input pipe closed unexpectedly");
+                    running = false; } // Pipe closed
             }
 
             // Read from black board PIPE
@@ -245,7 +273,10 @@ int main(int argc, char *argv[])
                     x_prev2 = x_update;
                     y_prev = y_update;
                     y_prev2 = y_update;
-                }
+                    LOG_INFO("Drone", "Received key inputs");
+                }else { 
+                    LOG_ERROR("Drone", "Input pipe closed unexpectedly");
+                    running = false; }
             }
 
             // Read repulsion keys
@@ -255,8 +286,10 @@ int main(int argc, char *argv[])
                     strRepul[bytes] = '\0';
                     sscanf(strRepul, "%f,%f,%f",&distance,&dx,&dy);
                     repul=true;
+                    LOG_INFO("Drone", "Received repulsion inputs");
                 } else { 
                     if (bytes == 0) { // Pipe closed
+                        LOG_ERROR("Drone", "Input pipe closed unexpectedly");
                         running = false;
                     }
                 }
@@ -363,8 +396,9 @@ int main(int argc, char *argv[])
             total_fx += repul_x;
             total_fy += repul_y;
 
-            dprintf(STDERR_FILENO, "DRONE: Repulsion - dist=%.2f, Fmag=%.4f, Fx=%.4f, Fy=%.4f\n",
-            dist_f, repulsion_force, repul_x, repul_y);
+            char msg[256];
+            snprintf(msg, 256, "DRONE: Repulsion - dist=%.2f, Fmag=%.4f, Fx=%.4f, Fy=%.4f", dist_f, repulsion_force, repul_x, repul_y);
+            log_coordinates(msg);
             repul=false;
         }
     
@@ -386,17 +420,22 @@ int main(int argc, char *argv[])
         // Sends the current position back to bb
         snprintf(sOut, sizeof(sOut), "%d,%d", (int)(x_curr), (int)(y_curr));
         ssize_t w = write(fdToBB, sOut, strlen(sOut) + 1);
+        char msg[256];
+        // Log coordinates with timestamp
+        if (w > 0) {
+            snprintf(msg, 256, "Drone: coordinates %d,%d - write successful", (int)x_curr, (int)y_curr);
+            log_coordinates(msg);
+        } else {
+            snprintf(msg, 256, "Drone: coordinates %d,%d - write failed: %s", (int)x_curr, (int)y_curr, strerror(errno));
+            log_coordinates(msg);
+            running = false;
+        }
+           
         
         // Checking alive signal
         if (health_check) {
             health_check = 0; // Reset flag
             kill(watchdog_pid, SIGUSR2); // Send signal back to watchdog
-        }
-
-        if (w > 0) {
-            dprintf(STDERR_FILENO, "DRONE: wrote %zd bytes to fd %d -> '%s'\n", w, fdToBB, sOut);
-        } else {
-            dprintf(STDERR_FILENO, "DRONE: write failed fd=%d ret=%zd errno=%d (%s)\n", fdToBB, w, errno, strerror(errno));
         }
         
         
@@ -409,6 +448,8 @@ int main(int argc, char *argv[])
     close(fdFromBB);
     close(fdToBB);
     close(fdRepul);
+    logger_close();
+   
 
     return 0;
 }

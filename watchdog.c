@@ -7,6 +7,7 @@
 #include "logger.h"
 #include <sys/file.h>  
 #include <time.h>
+#include "logger_custom.h"
 
 #define CHECK_INTERVAL 10
 #define RESPONSE_TIMEOUT 10
@@ -49,7 +50,12 @@ void timeout_handler(int signo) {
 }
 
 void terminate_handler(int signo) {
-    if (signo == SIGTERM) terminate_flag = 1;
+    if (signo == SIGTERM) {
+        terminate_flag = 1;
+        char msg[256];
+        snprintf(msg, 256, "All Processes terminated by Master Process");
+        log_watchdog(msg);
+    }
 }
 
 // Load the process_log from file
@@ -57,7 +63,10 @@ void terminate_handler(int signo) {
 
 int load_processes() {
     FILE *f = fopen("process_log.txt", "r");
-    if (!f) return 0;
+    if (!f) {
+        LOG_ERROR("Watchdog", "Failed to open process_log.txt");
+        return 0;
+    }
 
     // LOCK THE FILE
     if (flock(fileno(f), LOCK_EX) == -1) {
@@ -156,7 +165,7 @@ int main() {
         printf("No processes to monitor!\n");
     }
     
-    printf("Monitoring %d processes. Check logs: tail -f watchdog_log.txt\n", process_count);
+    LOG_INFO("Watchdog","Monitoring %d processes. Check logs: tail -f watchdog_log.txt\n", process_count);
     
     int cycle = 0;
     while (1) {
@@ -180,7 +189,7 @@ int main() {
         }
         
         if (alive == 0) {
-            printf("\nAll processes dead. Watchdog exiting.\n");
+            LOG_INFO("Watchdog","\nAll processes dead. Watchdog exiting.\n");
             log_watchdog("All processes dead. Watchdog exiting.");
             break;
         }

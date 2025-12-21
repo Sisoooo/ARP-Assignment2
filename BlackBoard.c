@@ -16,6 +16,7 @@
 #include <sys/file.h>
 #include "logger.h"
 #include <signal.h>
+#include "logger_custom.h"
 #define MAX_ITEMS 20
 typedef struct {
     int x;
@@ -162,7 +163,9 @@ int main(int argc, char *argv[]) {
     sigaction(SIGUSR1, &sa, NULL);
     
     // LOG SELF immediately
-    log_process("BlackBaord", getpid());
+    log_process("BlackBoard", getpid());
+    logger_init("system.log");
+    LOG_INFO("BlackBoard", "Starting BlackBoard Process (PID=%d)", getpid());
     
     pid_t watchdog_pid = -1;
     int retries = 0;
@@ -173,7 +176,7 @@ int main(int argc, char *argv[]) {
     }
     
     if (watchdog_pid == -1) {
-        printf("Could not find Watchdog! Exiting.\n");
+        LOG_WARNING("BlackBoard","Could not find Watchdog! Exiting.\n");
         return 1;
     }
     Parameter_File();
@@ -229,7 +232,7 @@ int main(int argc, char *argv[]) {
     int fdTa = atoi(argv[4]);    
     char *path_bb = argv[5];
     int fdIn_BB = open(path_bb, O_RDONLY | O_NONBLOCK);
-    if (fdIn_BB == -1) { perror("Failed to open BB Pipe"); return OPEN_FAIL; }
+    if (fdIn_BB == -1) { LOG_ERRNO("BlackBoard","Failed to open In_BB Pipe"); return OPEN_FAIL; }
     int fdRepul =atoi(argv[6]);
 
     struct timeval tv;
@@ -267,7 +270,10 @@ int main(int argc, char *argv[]) {
 
     while (running) {
 
-        if (should_exit) break;
+        if (should_exit) {
+            LOG_INFO("BlackBoard","Termination signal received. Exiting main loop.\n");
+            break;
+        }    
         
         int ch = wgetch(win); // poll window for keys (returns KEY_RESIZE)
         sIn[0]='\0';
@@ -349,8 +355,11 @@ int main(int argc, char *argv[]) {
                 
                 if (bytes > 0) {
                     sscanf(strIn, "%1s", sIn); 
+                    LOG_INFO("BlackBoard","Received input command: %s", sIn);
                 } 
-                else { running = false; } // Pipe closed
+                else { 
+                    LOG_ERROR("BlackBoard", "Input pipe closed unexpectedly");
+                    running = false; } // Pipe closed
             }
 
             // Receiving coordinates from drone pipe
@@ -363,9 +372,12 @@ int main(int argc, char *argv[]) {
                     else {
                         sToBB[bytes] = '\0';
                         sscanf(sToBB, "%f,%f", &x_curr, &y_curr);
+                        LOG_INFO("BlackBoard","Received drone coordinates:");
                     }   
                 }
-                else { running = false; }
+                else { 
+                    LOG_ERROR("BlackBoard", "Drone pipe closed unexpectedly");
+                    running = false; }
             }
             
 
@@ -376,6 +388,7 @@ int main(int argc, char *argv[]) {
                     strOb[bytes] = '\0';
                     int new_x, new_y;
                     sscanf(strOb, format_stringOb, &new_x, &new_y);
+                    LOG_INFO("BlackBoard","Received obstacle coordinates:");
 
                     //apply to current window size
                     float ratio_x = (float)new_x / (float)window_width;
@@ -395,7 +408,9 @@ int main(int argc, char *argv[]) {
                     obs_head = (obs_head + 1) % MAX_ITEMS;
                     if (obs_count < MAX_ITEMS) obs_count++;
                 }
-                else { running = false; }
+                else { 
+                    LOG_ERROR("BlackBoard", "Obstacle pipe closed unexpectedly");
+                    running = false; }
             }
 
             // Reading coordinates from target pipe
@@ -405,6 +420,8 @@ int main(int argc, char *argv[]) {
                     strTa[bytes] = '\0';
                     int new_x, new_y;
                     sscanf(strTa, format_stringTa, &new_x, &new_y);
+                    LOG_INFO("BlackBoard","Received target coordinates:");
+
                     //apply to current window size
                     float ratio_x = (float)new_x / (float)window_width;
                     float ratio_y = (float)new_y / (float)window_height;
@@ -429,7 +446,9 @@ int main(int argc, char *argv[]) {
                         targets[MAX_ITEMS - 1].y = new_y;
                     }
                 }
-                else { running = false; }
+                else { 
+                    LOG_ERROR("BlackBoard", "Target pipe closed unexpectedly");
+                    running = false; }
             }
         }                
 
@@ -464,11 +483,12 @@ int main(int argc, char *argv[]) {
             snprintf(sFromBB, sizeof(sFromBB), "%.0f,%.0f", x_curr, y_curr);     
             write(fdFromBB, sFromBB, strlen(sFromBB) + 1);
             wrefresh(win);
+            LOG_INFO("BlackBoard","Drone recentred to");
         }
 
         // Pause the game, wait for 'u' to unpause
         if (input_key == 'p') {
-            mvwprintw(win, 0, 0, "Game Paused, Press 'u' (via pipe) to Resume");
+            mvwprintw(win, 0, 0, "Game Paused, Press 'u' to Resume");
             wrefresh(win);
 
             fd_set pause_fds;
@@ -663,6 +683,7 @@ int main(int argc, char *argv[]) {
 
     delwin(win);
     endwin();
+    logger_close();
     return 0;
 
 }

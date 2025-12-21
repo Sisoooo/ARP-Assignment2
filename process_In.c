@@ -12,6 +12,7 @@
 #include <signal.h>
 #include <sys/file.h>
 #include "logger.h"
+#include "logger_custom.h"
 
 
 // sig_atomic_t ensures atomic access during signal handling
@@ -44,6 +45,8 @@ int main(int argc, char *argv[])
 
      // 1. LOG SELF immediately
     log_process("Input", getpid());
+    logger_init("system.log");
+    LOG_INFO("Input", "Starting Input Process (PID=%d)", getpid());
     
     pid_t watchdog_pid = -1;
     int retries = 0;
@@ -54,7 +57,7 @@ int main(int argc, char *argv[])
     }
     
     if (watchdog_pid == -1) {
-        printf("Could not find Watchdog! Exiting.\n");
+        LOG_ERROR("Input", "Could not find Watchdog! Exiting.");
         return 1;
     }
 
@@ -75,7 +78,10 @@ int main(int argc, char *argv[])
     int fdIn = atoi(argv[1]);
     char *path_bb = argv[2];
     int fdIn_BB = open(path_bb, O_WRONLY);
-    if (fdIn_BB == -1) { perror("Failed to open BB Pipe"); return OPEN_FAIL; }
+    if (fdIn_BB == -1) { 
+        LOG_ERRNO("Input", "Failed to open In_BB Pipe");
+        return OPEN_FAIL; 
+    }
 
     // Setting up the terminal to read single characters without waiting for Enter
     struct termios old_tio, new_tio;
@@ -98,7 +104,10 @@ int main(int argc, char *argv[])
 
     while (1) 
     {
-        if (should_exit) break;
+        if (should_exit) {
+            LOG_INFO("Input", "Termination signal received. Exiting main loop.");
+            break;
+        }
 
         if (read(STDIN_FILENO, &c, 1) > 0) 
         {
@@ -135,7 +144,7 @@ int main(int argc, char *argv[])
 
     // Restore the old terminal settings
     tcsetattr(STDIN_FILENO, TCSANOW, &old_tio);
-    
+    logger_close();
     return 0;
 }
 

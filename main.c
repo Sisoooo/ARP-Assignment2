@@ -10,7 +10,8 @@
 #include <sys/time.h>
 #include <errno.h>
 #include <sys/file.h>
-#include "logger.h"  // Include the logger header
+#include "logger.h" 
+#include "logger_custom.h"
 
 int main()
 {
@@ -21,6 +22,9 @@ int main()
 
     // 2. LOG the Master process
     log_process("Master", getpid());
+
+    logger_init("system.log");  // 
+    LOG_INFO("Master", "Starting Master Process (PID=%d)", getpid());
     
     int fdIn[2], fdOb[2], fdTa[2],fdToBB[2], fdFromBB[2],fdRepul[2];
 
@@ -28,43 +32,43 @@ int main()
     
     // Remove existing pipe if it exists (ignore error if it doesn't exist)
     if (unlink(pipe_path) == -1 && errno != ENOENT) {
-        perror("Warning: Failed to remove existing pipe");
+        LOG_ERRNO("Master","Warning: Failed to remove existing pipe");
     }
  
 
  //check if pipes initialize
     if (pipe(fdIn) == -1) {
-        perror("pipe fdIn failed");
+        LOG_ERRNO("Master","pipe fdIn failed");
         exit(1);
     }
     
     if (pipe(fdOb) == -1) {
-        perror("pipe fdOb failed");
+        LOG_ERRNO("Master","pipe fdOb failed");
         exit(1);
     }
     
     if (pipe(fdTa) == -1) {
-        perror("pipe fdTa failed");
+        LOG_ERRNO("Master","pipe fdTa failed");
         exit(1);
     }   
 
     if (pipe(fdToBB) == -1) {
-        perror("pipe failed");
+        LOG_ERRNO("Master","pipe failed");
         exit(1);
     } 
 
     if (pipe(fdFromBB) == -1) {
-        perror("pipe failed");
+        LOG_ERRNO("Master","pipe failed");
         exit(1);
     } 
     
     if (pipe(fdRepul) == -1) {
-        perror("pipe failed");
+        LOG_ERRNO("Master","pipe failed");
         exit(1);
     }
     
     if (mkfifo(pipe_path, 0666) == -1) {
-        perror("Failed to create named pipe");
+        LOG_ERRNO("Master","Failed to create named pipe");
         exit(1);
     }
 
@@ -116,7 +120,7 @@ int main()
         execlp("konsole", "konsole", "-e", "./BlackBoard",fdToBB_str,fdFromBB_str,fdOb_str,fdTa_str,"./pipe_blackboard_input",fdRepul_str, (char *)NULL); // launch another process if condition met
        
         // If exec fails
-        perror("exec failed");
+        LOG_ERRNO("Master,BB fork","exec failed");
         exit(1);
      
 
@@ -127,7 +131,7 @@ int main()
 
         if (In < 0)
    {
-    perror("Error in fork");
+    LOG_ERRNO("Master,In fork","Error in fork");
     return 1;
     }
 
@@ -148,7 +152,7 @@ int main()
         
         execlp("konsole", "konsole", "-e", "./process_In", fd_str, "./pipe_blackboard_input",(char *)NULL); // launch another process if condition met
        
-        perror("exec failed");
+        LOG_ERRNO("Master,In fork","exec failed");
         exit(1);
      
 
@@ -160,7 +164,7 @@ int main()
 
     if (Ob < 0)
     {
-    perror("Error in fork");
+    LOG_ERRNO("Master,Ob fork","Error in fork");
     return 1;
     }
 
@@ -187,7 +191,7 @@ int main()
 
     if (Ta < 0)
     {
-    perror("Error in fork");
+    LOG_ERRNO("Master,Ta fork","Error in fork");
     return 1;
     }
 
@@ -209,7 +213,7 @@ int main()
         execlp("./process_Ta", "./process_Ta", fd_str, (char *)NULL); // launch another process if condition met
        
         // If exec fails
-        perror("exec failed");
+        LOG_ERRNO("Master,Ta fork","exec failed");
         exit(1);
     
     }
@@ -219,7 +223,7 @@ int main()
 
     if (Dr < 0)
     {
-    perror("Error in fork");
+    LOG_ERRNO("Master,Dr fork","Error in fork");
     return 1;
     }
 
@@ -258,7 +262,7 @@ int main()
         execlp("./process_Drone", "./process_Drone",fdIn_str,fdFromBB_str,fdtoBB_str,fdRepul_str, (char *)NULL); // launch another process if condition met
        
         // If exec fails
-        perror("exec failed");
+        LOG_ERRNO("Master,Dr fork","exec failed");
         exit(1);
     
     }
@@ -268,13 +272,13 @@ int main()
 
      if (WD < 0)
     {
-    perror("Error in fork");
+    LOG_ERRNO("Master,WD fork","Error in fork");
     return 1;
     }
 
    if (WD == 0) {
     execl("./watchdog", "watchdog", NULL);
-    perror("Failed to start watchdog"); 
+    LOG_ERRNO("Master,WD fork","Failed to start watchdog"); 
     exit(1); // Kill the child process immediately if execl fails
 }
 
@@ -351,6 +355,7 @@ int main()
 
     //unlink the named pipe
     unlink(pipe_path);
+    logger_close();
 
     return 0;
 }

@@ -7,26 +7,29 @@ MATH_ONLY = -lm
 
 all: main process_Drone BlackBoard process_In process_Ob process_Ta watchdog
 
-main: main.c
-	$(CC) $(CFLAGS) main.c -o main
+system_logger.o: system_logger.c
+	$(CC) $(CFLAGS) -c system_logger.c -o system_logger.o
 
-process_Drone: process_Drone.c 
-	$(CC) $(CFLAGS) process_Drone.c -o process_Drone $(MATH_ONLY)
+main: main.c system_logger.o
+	$(CC) $(CFLAGS) main.c system_logger.o -o main
 
-BlackBoard: BlackBoard.c 
-	$(CC) $(CFLAGS) BlackBoard.c -o BlackBoard $(LIBS) $(MATH_ONLY)
+process_Drone: process_Drone.c system_logger.o
+	$(CC) $(CFLAGS) process_Drone.c system_logger.o -o process_Drone $(MATH_ONLY)
 
-process_In: process_In.c 
-	$(CC) $(CFLAGS) process_In.c -o process_In
+BlackBoard: BlackBoard.c system_logger.o
+	$(CC) $(CFLAGS) BlackBoard.c system_logger.o -o BlackBoard $(LIBS) $(MATH_ONLY)
 
-process_Ob: process_Ob.c 
-	$(CC) $(CFLAGS) process_Ob.c -o process_Ob
+process_In: process_In.c system_logger.o
+	$(CC) $(CFLAGS) process_In.c system_logger.o -o process_In
 
-process_Ta: process_Ta.c 
-	$(CC) $(CFLAGS) process_Ta.c -o process_Ta
+process_Ob: process_Ob.c system_logger.o
+	$(CC) $(CFLAGS) process_Ob.c system_logger.o -o process_Ob
 
-watchdog: watchdog.c
-	$(CC) $(CFLAGS) watchdog.c -o watchdog
+process_Ta: process_Ta.c system_logger.o
+	$(CC) $(CFLAGS) process_Ta.c system_logger.o -o process_Ta
+
+watchdog: watchdog.c system_logger.o
+	$(CC) $(CFLAGS) watchdog.c system_logger.o -o watchdog
 
 clean:
 	rm main process_Drone BlackBoard process_In process_Ob process_Ta					

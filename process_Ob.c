@@ -11,6 +11,7 @@
 #include <time.h>
 #include <sys/file.h>
 #include "logger.h"
+#include "logger_custom.h"
 
 int window_width;
 int window_height;
@@ -50,7 +51,7 @@ void Parameter_File() {
 
     FILE* file = fopen("Parameter_File.txt", "r");
     if (file == NULL) {
-        perror("Error opening Parameter_File.txt");
+        LOG_ERRNO("Obstacles", "Error opening Parameter_File.txt");
         exit(OPEN_FAIL);
     }
 
@@ -98,6 +99,8 @@ int main(int argc, char *argv[])
 
      // 1. LOG SELF immediately
     log_process("Obstacles", getpid());
+    logger_init("system.log");
+    LOG_INFO("Obstacles", "Starting Obstacles Process (PID=%d)", getpid());
 
     pid_t watchdog_pid = -1;
     int retries = 0;
@@ -129,7 +132,10 @@ int main(int argc, char *argv[])
     srand(time(NULL) + getpid());
 
     while(1){
-        if (should_exit) break;
+        if (should_exit) {
+            LOG_INFO("Obstacles", "Termination signal received. Exiting main loop.");
+            break;
+        }
         // Randomly generate obstacle coordinates every 5 seconds
         long now_ms = current_millis();
         if (now_ms - last_obstacle_ms >= obstacle_interval_ms) {
@@ -150,6 +156,7 @@ int main(int argc, char *argv[])
 
     //clean up
     close(fdOb);
+    logger_close();
     return 0;
  
 }
