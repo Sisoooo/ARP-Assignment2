@@ -346,11 +346,8 @@ int main(int argc, char *argv[])
         // BUT active_key persists, so the engine keeps running.
         sIn[0] = ' '; 
         
-
-        if (repul){
-            boost_level=0;
-            active_key = ' ';  // Stop the engine
-        }
+        // Note: We no longer reset boost_level and active_key when repulsion occurs.
+        // This allows both user input force and repulsion force to be applied simultaneously.
 
         float multiplier = 1.0 + (boost_level * 0.2);
         float cur_force = force_intial * multiplier;

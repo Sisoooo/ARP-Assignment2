@@ -1,7 +1,7 @@
-Process: Master | PID: 31824
-Process: Targets | PID: 31848
-Process: Watchdog | PID: 31850
-Process: Obstacles | PID: 31847
-Process: Drone | PID: 31849
-Process: Input | PID: 31863
-Process: BlackBoard | PID: 31862
+Process: Master | PID: 4690
+Process: Targets | PID: 4715
+Process: Drone | PID: 4716
+Process: Obstacles | PID: 4714
+Process: Watchdog | PID: 4717
+Process: Input | PID: 4727
+Process: BlackBoard | PID: 4728
