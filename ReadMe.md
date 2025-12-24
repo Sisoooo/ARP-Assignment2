@@ -65,4 +65,5 @@ Key algorithm of the watchdog:
 ## Fixes applied
 
 - Drone, obstacles, targets and the window border are now colored and correctly visualized.
-- 
+- Removed "square" writing artifact near the drone
+- Fixed repulsion forces so that they make the drone "slide" around the obstacle rather than pushing it away
