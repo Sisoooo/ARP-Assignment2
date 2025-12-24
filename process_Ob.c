@@ -136,6 +136,13 @@ int main(int argc, char *argv[])
             LOG_INFO("Obstacles", "Termination signal received. Exiting main loop.");
             break;
         }
+        
+        // Checking alive signal
+        if (health_check) {
+            health_check = 0; // Reset flag
+            kill(watchdog_pid, SIGUSR2); // Send signal back to watchdog
+        }
+        
         // Randomly generate obstacle coordinates every 5 seconds
         long now_ms = current_millis();
         if (now_ms - last_obstacle_ms >= obstacle_interval_ms) {
@@ -144,12 +151,6 @@ int main(int argc, char *argv[])
             last_obstacle_ms = now_ms;
             sprintf(buffer, "%d,%d", x_coord_Ob, y_coord_Ob);
             write(fdOb, buffer, strlen(buffer)+1);
-
-            // Checking alive signal
-            if (health_check) {
-                health_check = 0; // Reset flag
-                kill(watchdog_pid, SIGUSR2); // Send signal back to watchdog
-            }
         }
         usleep(100000); // Sleep 100ms to avoid busy-waiting
     }

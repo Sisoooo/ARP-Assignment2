@@ -164,7 +164,7 @@ int main(int argc, char *argv[]) {
     
     // LOG SELF immediately
     log_process("BlackBoard", getpid());
-    logger_init("system.log");
+    logger_init("system.txt");
     LOG_INFO("BlackBoard", "Starting BlackBoard Process (PID=%d)", getpid());
     
     pid_t watchdog_pid = -1;

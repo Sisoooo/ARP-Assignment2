@@ -151,8 +151,12 @@ int main(int argc, char *argv[])
 
     // LOG SELF immediately
     log_process("Drone", getpid());
-    logger_init("system.log");
+    logger_init("system.txt");
     LOG_INFO("Drone", "Starting Drone Process (PID=%d)", getpid());
+    
+    // Reset coordinates log at start
+    FILE *reset_f = fopen("coordinates_log.txt", "w");
+    if (reset_f) fclose(reset_f);
     
     pid_t watchdog_pid = -1;
     int retries = 0;

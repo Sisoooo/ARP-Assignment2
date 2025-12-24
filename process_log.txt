@@ -1,7 +1,7 @@
-Process: Master | PID: 4690
-Process: Targets | PID: 4715
-Process: Drone | PID: 4716
-Process: Obstacles | PID: 4714
-Process: Watchdog | PID: 4717
-Process: Input | PID: 4727
-Process: BlackBoard | PID: 4728
+Process: Master | PID: 4406
+Process: Targets | PID: 4430
+Process: Obstacles | PID: 4429
+Process: Watchdog | PID: 4432
+Process: Drone | PID: 4431
+Process: BlackBoard | PID: 4439
+Process: Input | PID: 4441

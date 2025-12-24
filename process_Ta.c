@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
     
      // 1. LOG SELF immediately
     log_process("Targets", getpid());
-    logger_init("system.log");
+    logger_init("system.txt");
     LOG_INFO("Targets", "Starting Targets Process (PID=%d)", getpid());
 
     pid_t watchdog_pid = -1;
@@ -136,6 +136,12 @@ int main(int argc, char *argv[])
             break;
         }
         
+        // Checking alive signal
+        if (health_check) {
+            health_check = 0; // Reset flag
+            kill(watchdog_pid, SIGUSR2); // Send signal back to watchdog
+        }
+        
         long now_ms = current_millis();
         if (now_ms - last_target_ms >= target_interval_ms) {
             x_coord_Ta = 1 + rand() % (window_width - 10);
@@ -143,12 +149,6 @@ int main(int argc, char *argv[])
             last_target_ms = now_ms;
             sprintf(buffer, "%d,%d", x_coord_Ta, y_coord_Ta);
             write(fdTa, buffer, strlen(buffer)+1);
-
-            // Checking alive signal
-            if (health_check) {
-                health_check = 0; // Reset flag
-                kill(watchdog_pid, SIGUSR2); // Send signal back to watchdog
-            }
         }
         usleep(100000); // Sleep 100ms to avoid busy-waiting
     }

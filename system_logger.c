@@ -35,6 +35,10 @@ int logger_init(const char* path) {
     }
     fclose(test);
     
+    // Reset the log file at start
+    FILE* reset = fopen(log_file_path, "w");
+    if (reset) fclose(reset);
+    
     return 0;
 }
 
