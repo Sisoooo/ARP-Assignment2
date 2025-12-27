@@ -49,9 +49,9 @@ void handle_terminate(int signo) {
 
 
 void log_coordinates(const char *message) {
-    FILE *f = fopen("coordinates_log.txt", "a");
+    FILE *f = fopen("coordinates_log.log", "a");
     if (!f) {
-        LOG_ERRNO("Drone","Failed to open coordinates_log.txt");
+        LOG_ERRNO("Drone","Failed to open coordinates_log.log");
         return;
     }
     if (flock(fileno(f), LOCK_EX) == -1) { fclose(f); return; }
@@ -151,11 +151,11 @@ int main(int argc, char *argv[])
 
     // LOG SELF immediately
     log_process("Drone", getpid());
-    logger_init("system.txt");
+    logger_init("system.log");
     LOG_INFO("Drone", "Starting Drone Process (PID=%d)", getpid());
     
     // Reset coordinates log at start
-    FILE *reset_f = fopen("coordinates_log.txt", "w");
+    FILE *reset_f = fopen("coordinates_log.log", "w");
     if (reset_f) fclose(reset_f);
     
     pid_t watchdog_pid = -1;

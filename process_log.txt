@@ -1,7 +1,0 @@
-Process: Master | PID: 4406
-Process: Targets | PID: 4430
-Process: Obstacles | PID: 4429
-Process: Watchdog | PID: 4432
-Process: Drone | PID: 4431
-Process: BlackBoard | PID: 4439
-Process: Input | PID: 4441

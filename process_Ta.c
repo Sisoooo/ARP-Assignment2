@@ -99,7 +99,7 @@ int main(int argc, char *argv[])
     
      // 1. LOG SELF immediately
     log_process("Targets", getpid());
-    logger_init("system.txt");
+    logger_init("system.log");
     LOG_INFO("Targets", "Starting Targets Process (PID=%d)", getpid());
 
     pid_t watchdog_pid = -1;
