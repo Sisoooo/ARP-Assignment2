@@ -7,7 +7,7 @@
 // Function to log process name and PID to a file with file locking
 void log_process(const char *process_name, int pid) {
     // 1. OPEN FILE (Append Mode)
-    FILE *f = fopen("process_log.txt", "a");
+    FILE *f = fopen("process_log.log", "a");
     if (f == NULL) {
         perror("Failed to open log file");
         return;
@@ -38,7 +38,7 @@ void log_process(const char *process_name, int pid) {
 // Read the log file to find a PID by name
 //this is used by the process to send a signal to the watchdog
 pid_t get_pid_by_name(const char *process_name) {
-    FILE *f = fopen("process_log.txt", "r");
+    FILE *f = fopen("process_log.log", "r");
     if (f == NULL) return -1;
     
     char line[256];

@@ -27,7 +27,7 @@ volatile sig_atomic_t terminate_flag = 0;
 
 // Helper to log watchdog specific events
 void log_watchdog(const char *message) {
-    FILE *f = fopen("watchdog_log.txt", "a");
+    FILE *f = fopen("watchdog_log.log", "a");
     if (!f) return;
     if (flock(fileno(f), LOCK_EX) == -1) { fclose(f); return; }
     
@@ -62,9 +62,9 @@ void terminate_handler(int signo) {
 // This allows for the watchdog to have all processes pids and names
 
 int load_processes() {
-    FILE *f = fopen("process_log.txt", "r");
+    FILE *f = fopen("process_log.log", "r");
     if (!f) {
-        LOG_ERROR("Watchdog", "Failed to open process_log.txt");
+        LOG_ERROR("Watchdog", "Failed to open process_log.log");
         return 0;
     }
 
@@ -154,18 +154,18 @@ int main() {
     sigaction(SIGTERM, &sa, NULL);
 
     // Initialize Logs
-    FILE *f = fopen("watchdog_log.txt", "w"); if (f) fclose(f);
+    FILE *f = fopen("watchdog_log.log", "w"); if (f) fclose(f);
     log_process("Watchdog", getpid());
     printf("Watchdog started (PID=%d)\n", getpid());
     
        
-    printf("Loading processes from process_log.txt...\n");
+    printf("Loading processes from process_log.log...\n");
     while (load_processes() == 0) {
         sleep(1);
         printf("No processes to monitor!\n");
     }
     
-    LOG_INFO("Watchdog","Monitoring %d processes. Check logs: tail -f watchdog_log.txt\n", process_count);
+    LOG_INFO("Watchdog","Monitoring %d processes. Check logs: tail -f watchdog_log.log\n", process_count);
     
     int cycle = 0;
     while (1) {

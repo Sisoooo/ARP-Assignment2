@@ -166,9 +166,9 @@ This module provides a **system-wide, multi-process safe logging utility** used 
 
 ### 🧾 Process Registry Logger (`logger.h`)
 
-This header file has the purpose of process discovery. It writes in a specific file (`process_log.txt`) all the processes currently exist when launching the master process, and does this with two main methods:
+This header file has the purpose of process discovery. It writes in a specific file (`process_log.log`) all the processes currently exist when launching the master process, and does this with two main methods:
 
-- **log_process()**: when a process starts, its name and PID are written in `process_log.txt`
+- **log_process()**: when a process starts, its name and PID are written in `process_log.log`
 - **get_pid_by_name()**: helper function, helps finding a PID if only a process name is known
 
 This logger is separated from the other because it works as a way to keep track of all the processes, rather than a debugging tool. It is mainly checked by the watchdog to let it know of what processes it must check.
@@ -179,15 +179,15 @@ This logger is separated from the other because it works as a way to keep track 
 This process implements a **health monitoring supervisor** for the concurrent system. It periodically checks that registered processes respond to a “ping”, and terminates unresponsive ones.
 
 Data sources and sinks:
-- Input: `process_log.txt`
+- Input: `process_log.log`
 	- The watchdog reads process names and PIDs written by `log_process()`.
 	- It ignores its own PID and the `Master` entry.
-- Output: `watchdog_log.txt`
-	- Human-readable operational log of watchdog actions.
+- Output: `watchdog_log.log`
+	- Operational log of watchdog actions.
 	- Each line is written using file locking to avoid concurrency issues.
 
 Key algorithm of the watchdog:
-- Waits until `process_log.txt` contains at least one process to monitor.
+- Waits until `process_log.log` contains at least one process to monitor.
 - Every `CHECK_INTERVAL` seconds, it reloads the process list (supports dynamic process creation).
 - For each active process:
 	1. Verifies the PID still exists (`kill(pid, 0)` as an existence probe).
@@ -201,9 +201,9 @@ Key algorithm of the watchdog:
 ## Log files added
 
 - `coordinates.log`: reports the current position of the drone and if the pipe writing has been successful or not.
-- `process_log.txt`: writes in it all the currently active processes with respective names and PIDs.
+- `process_log.log`: writes in it all the currently active processes with respective names and PIDs.
 - `system.log`: global log file that reports process starting, updates and user inputs.
-- `watchdog_log.txt`: reports the output of the health cycle, i.e. checking if every currently active process works every time the security check is completed
+- `watchdog_log.log`: reports the output of the health cycle, i.e. checking if every currently active process works every time the security check is completed
 
 ## Fixes applied
 

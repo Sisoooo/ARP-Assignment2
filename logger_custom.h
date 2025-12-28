@@ -31,6 +31,9 @@ void logger_log(LogLevel level, const char* process_name, const char* file,
 #define LOG_ERROR(process, ...) \
     logger_log(LOG_ERROR, process, __FILE__, __LINE__, __func__, __VA_ARGS__)
 
+#define LOG_CRITICAL(process, ...) \
+    logger_log(LOG_CRITICAL, process, __FILE__, __LINE__, __func__, __VA_ARGS__)
+
 // Special macro for System Errors (like "File not found")
 #define LOG_ERRNO(process, msg) \
     logger_log(LOG_ERROR, process, __FILE__, __LINE__, __func__, \

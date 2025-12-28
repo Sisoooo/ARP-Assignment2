@@ -17,13 +17,13 @@ int main()
 {
     // Clear the log file at start of Master so we don't keep old runs
     // "w" mode truncates the file if it exists and creates it if it doesn't
-    FILE *f = fopen("process_log.txt", "w");
+    FILE *f = fopen("process_log.log", "w");
     fclose(f);
 
     // 2. LOG the Master process
     log_process("Master", getpid());
 
-    logger_init("system.txt");  // 
+    logger_init("system.log");  // 
     LOG_INFO("Master", "Starting Master Process (PID=%d)", getpid());
     
     int fdIn[2], fdOb[2], fdTa[2],fdToBB[2], fdFromBB[2],fdRepul[2];
