@@ -45,10 +45,12 @@ void response_handler(int signo) {
     if (signo == SIGUSR2) response_received = 1;
 }
 
+// Handler for timeout alarm
 void timeout_handler(int signo) {
     if (signo == SIGALRM) timeout_occurred = 1;
 }
 
+// Handler for termination signal from Master Process
 void terminate_handler(int signo) {
     if (signo == SIGTERM) {
         terminate_flag = 1;
@@ -60,7 +62,6 @@ void terminate_handler(int signo) {
 
 // Load the process_log from file
 // This allows for the watchdog to have all processes pids and names
-
 int load_processes() {
     FILE *f = fopen("process_log.log", "r");
     if (!f) {
@@ -140,6 +141,7 @@ void check_process(int index) {
     }
 }
 
+// Main Watchdog Loop, sets up signal handlers and monitors child processes
 int main() {
     // Setup Handlers
     struct sigaction sa;
