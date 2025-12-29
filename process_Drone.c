@@ -35,12 +35,14 @@ bool repul =false;
 volatile sig_atomic_t health_check = 0;
 volatile sig_atomic_t should_exit = 0;
 
+// Handler for health check signal from watchdog
 void handle_signal(int signo) {
     if (signo == SIGUSR1) {
         health_check = 1; // Mark that we received a ping
     }
 }
 
+//termination handler from master process
 void handle_terminate(int signo) {
     if (signo == SIGTERM) {
         should_exit = 1;
@@ -182,6 +184,7 @@ int main(int argc, char *argv[])
 
     if (argc < 5) {
         fprintf(stderr, "Usage: %s <fd>\n", argv[0]);
+        LOG_CRITICAL("Drone", "Insufficient arguments provided.");
         exit(USAGE_ERROR);
     }
 
@@ -261,7 +264,7 @@ int main(int argc, char *argv[])
                 if (bytes > 0) {
                     strIn[bytes] = '\0';
                     sscanf(strIn, "%s", sIn);
-                    LOG_INFO("Drone", "Received key inputs");
+                    LOG_INFO("Drone", "Received key input: %s", sIn);
                 } else { 
                     LOG_ERROR("Drone", "Input pipe closed unexpectedly");
                     running = false; } // Pipe closed

@@ -22,12 +22,14 @@ int y_coord_Ob;
 volatile sig_atomic_t health_check = 0;
 volatile sig_atomic_t should_exit = 0;
 
+// Handler for health check signal from watchdog
 void handle_signal(int signo) {
     if (signo == SIGUSR1) {
         health_check = 1; // Mark that we received a ping
     }
 }
 
+//termination handler from master process
 void handle_terminate(int signo) {
     if (signo == SIGTERM) {
         should_exit = 1;
@@ -119,6 +121,7 @@ int main(int argc, char *argv[])
 
     if (argc < 2) {
         fprintf(stderr, "Usage: %s <fd>\n", argv[0]);
+        LOG_CRITICAL("Obstacles", "Insufficient arguments provided.");
         exit(USAGE_ERROR);
     }
 
@@ -151,6 +154,7 @@ int main(int argc, char *argv[])
             last_obstacle_ms = now_ms;
             sprintf(buffer, "%d,%d", x_coord_Ob, y_coord_Ob);
             write(fdOb, buffer, strlen(buffer)+1);
+            LOG_INFO("Obstacles", "Generated new obstacle at (%d, %d)", x_coord_Ob, y_coord_Ob);
         }
         usleep(100000); // Sleep 100ms to avoid busy-waiting
     }

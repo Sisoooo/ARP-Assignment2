@@ -32,4 +32,4 @@ watchdog: watchdog.c system_logger.o
 	$(CC) $(CFLAGS) watchdog.c system_logger.o -o watchdog
 
 clean:
-	rm main process_Drone BlackBoard process_In process_Ob process_Ta					
+	rm main process_Drone BlackBoard process_In process_Ob process_Ta watchdog system_logger.o					

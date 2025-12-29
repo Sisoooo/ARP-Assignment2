@@ -101,51 +101,6 @@ Safety Factor:
 The different timings ensure that generations do not appear at once. The random generation relies on the time and PID, ensuring a unique sequence for generation. 
 The readjustment of obstacles and targets as the window changes allows for an even spread of obstacles and targets.
 
-## 3. List of Files
-/Assignment1
-|-main.c
-|-BlackBoard.c
-|-process_Drone.c
-|-process_In.c
-|-process_Ta.c
-|-process_Ob.c
-|-Parameter_File.txt
-|-ReadMe.md
-|-Makefile
-|-Sketch_of_Architecture.pdf
-
-## 🛠️ Installation and Running
-
-**1. Prerequisites**
-Ensure all source files (`.c`) and the `Makefile` are in the same directory.
-
-**2. Compilation**
-Open your terminal in the project folder and run the build script:
-```bash
-make
-./main
-```
-To clear executables, open your terminal in the project folder and run the following script:
-```bash
-make clean
-```
-
-## 🕹️Operational Instructions
-'e' - moves up
-'c' - moves down
-'f' - moves right
-'s' - moves left
-'r' - moves north-eat
-'x' - moves south-west
-'w' - moves west-north
-'v' - moves east-south
-
-'d' - breaks
-'a' - reset
-'q' - quits the game
-'p' - pauses the game
-'u' - unpauses the game
-
 ### 🧾 Logging System (`system_logger.c`, `logger_custom.h`)
 
 This module provides a **system-wide, multi-process safe logging utility** used by the Master, Blackboard, Drone, Input, and generator processes to write into the same file (`system.log`) without corruption problems.
@@ -205,6 +160,94 @@ Key algorithm of the watchdog:
 - `system.log`: global log file that reports process starting, updates and user inputs.
 - `watchdog_log.log`: reports the output of the health cycle, i.e. checking if every currently active process works every time the security check is completed
 
+## 3. List of Files
+/ARP-Assignment2
+|-main.c
+|-BlackBoard.c
+|-process_Drone.c
+|-process_In.c
+|-process_Ta.c
+|-process_Ob.c
+|-Parameter_File.txt
+|-ReadMe.md
+|-Makefile
+|-Sketch_of_Architecture.pdf
+|-system_logger.o
+|-watchdog.c
+|-logger.h
+|-logger_custom.h
+
+## 🛠️ Installation and Running
+
+**1. Prerequisites**
+Ensure all source files (`.c`) and the `Makefile` are in the same directory.
+
+**2. Compilation**
+Open your terminal in the project folder and run the build script:
+```bash
+make
+./main
+```
+To clear executables, open your terminal in the project folder and run the following script:
+```bash
+make clean
+```
+
+## Viewing .log files
+
+To view the `.log` files in the terminal the following commands should be run:
+
+1. To view each `.log` file created
+Open a new terminal in the project folder and run the following script:
+```bash
+ls *.log
+```
+2. A continuous window that monitors the operation of the `.log` files in real time:
+Open a new terminal in the project folder and run the following script while the game is running:
+```bash
+tail -f watchdog_log.log process_log.log system.log 
+```
+3. View end-of-file content
+Open a new terminal in the project folder and run the following script after the game is terminated:
+```bash
+tail watchdog_log.log process_log.log system.log
+```
+4. View the entire file history
+Open a new terminal in the project folder and run the following script:
+```bash
+cat watchdog_log.log process_log.log system.log
+```
+5. View the entire file history in an easier to read format
+It will be easier to read the file history if each `.log` is opened separately using the 
+```bash 
+cat 
+```
+To view separately the following commands should be executed:
+Open a new terminal in the project folder and run the following scripts in different terminals. Every `cat` should be in a new terminal:
+```bash
+cat watchdog_log.log 
+cat process_log.log 
+cat system.log
+cat coordinates_log.log
+```
+
+## 🕹️Operational Instructions
+'e' - moves up
+'c' - moves down
+'f' - moves right
+'s' - moves left
+'r' - moves north-eat
+'x' - moves south-west
+'w' - moves west-north
+'v' - moves east-south
+
+'d' - breaks
+'a' - reset
+'q' - quits the game
+'p' - pauses the game
+'u' - unpauses the game
+
+
 ## Fixes applied
 
 - Drone, obstacles, targets and the window border are now colored and correctly visualized.
@@ -217,4 +260,5 @@ Key algorithm of the watchdog:
 ### Necessary Notes:
 All commits are accessible for evaluation on GitHub at https://github.com/Sisoooo/ARP-Assignment2.git
 
+First Assignment Comments:
 These commits demonstrate our continued progress on the assignment. This project is a work in progress, primarily aimed towards ensuring that the interprocess communication via pipes is efficient and synchronised. Our second objective was to verify the accuracy of the computational logic and mathematics defining the obstacle and target generation, as well as the drone physics. The game's graphics will be enhanced during the project's final phases. We sincerely value your feedback to further our coding skills. 
