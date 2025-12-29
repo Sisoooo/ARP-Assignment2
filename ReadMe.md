@@ -215,6 +215,6 @@ Key algorithm of the watchdog:
 > Please wait for the drone to stop moving after the repulsion force was detected so as to provide the program enough time to react before pressing another key.
 
 ### Necessary Notes:
-All commits are accessible for evaluation on GitHub at https://github.com/Stef504/ARP.git.
+All commits are accessible for evaluation on GitHub at https://github.com/Sisoooo/ARP-Assignment2.git
 
 These commits demonstrate our continued progress on the assignment. This project is a work in progress, primarily aimed towards ensuring that the interprocess communication via pipes is efficient and synchronised. Our second objective was to verify the accuracy of the computational logic and mathematics defining the obstacle and target generation, as well as the drone physics. The game's graphics will be enhanced during the project's final phases. We sincerely value your feedback to further our coding skills. 
